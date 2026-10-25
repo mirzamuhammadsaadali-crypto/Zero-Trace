@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: zt, POSTGRES_PASSWORD: zt, POSTGRES_DB: zerotrace }
+    volumes: [pgdata:/var/lib/postgresql/data]
+  server:
+    build: ./server
+    environment:
+      DATABASE_URL: postgres://zt:zt@db:5432/zerotrace
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+    depends_on: [db]
+  web:
+    build: ./client
+    ports: ["8080:80"]
+    depends_on: [server]
+volumes: { pgdata: {} }

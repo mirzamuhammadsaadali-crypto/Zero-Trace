@@ -1,0 +1,32 @@
+#! web-deployment.yaml
+# Generated code, do not edit
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: web
+    namespace: zero-trace
+    labels:
+        com.docker.compose.project: zero-trace
+        com.docker.compose.service: web
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            com.docker.compose.project: zero-trace
+            com.docker.compose.service: web
+    strategy:
+        type: Recreate
+    template:
+        metadata:
+            labels:
+                com.docker.compose.project: zero-trace
+                com.docker.compose.service: web
+                com.docker.compose.network.default: "true"
+        spec:
+            containers:
+                - name: web
+                  image: zero-trace-web
+                  imagePullPolicy: IfNotPresent
+                  ports:
+                    - name: web-80
+                      containerPort: 80

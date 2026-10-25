@@ -1,0 +1,8 @@
+#! 0-zero-trace-namespace.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: zero-trace
+    labels:
+        com.docker.compose.project: zero-trace

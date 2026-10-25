@@ -1,0 +1,23 @@
+# VPS deployment with automatic HTTPS (Caddy). Usage:
+#   DOMAIN=game.example.com JWT_SECRET=<long random> DB_PASSWORD=<strong> docker compose -f docker-compose.prod.yml up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment: { POSTGRES_USER: zt, POSTGRES_PASSWORD: "${DB_PASSWORD:?set DB_PASSWORD}", POSTGRES_DB: zerotrace }
+    volumes: [pgdata:/var/lib/postgresql/data]
+  app:
+    build: .
+    restart: always
+    environment:
+      DATABASE_URL: postgres://zt:${DB_PASSWORD}@db:5432/zerotrace
+      JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET}"
+    depends_on: [db]
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    ports: ["80:80", "443:443"]
+    command: caddy reverse-proxy --from ${DOMAIN:?set DOMAIN} --to app:10000
+    volumes: [caddy:/data]
+    depends_on: [app]
+volumes: { pgdata: {}, caddy: {} }

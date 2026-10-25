@@ -1,8 +1,10 @@
 // ZERO TRACE server: auth, real-time game sessions (WebSocket), Postgres scores.
 // Everything is a FICTIONAL simulation. Nothing here touches real networks.
 import express from 'express'; import http from 'http'; import { WebSocketServer } from 'ws';
+import path from 'path'; import { fileURLToPath } from 'url';
 import pg from 'pg'; import bcrypt from 'bcryptjs'; import jwt from 'jsonwebtoken';
 
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) throw new Error('Set JWT_SECRET in production');
 const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL || 'postgres://zt:zt@localhost:5432/zerotrace' });
 const app = express(); app.use(express.json());
@@ -159,5 +161,11 @@ wss.on('connection', async (ws, req) => {
   ws.on('close', () => g && clearInterval(g.timer));
 });
 
+// Single-service mode: serve the built React app from ./public when it exists (used by the root Dockerfile).
+const pub = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public');
+app.use(express.static(pub));
+app.get('*', (_q, res) => res.sendFile(path.join(pub, 'index.html'), e => e && res.status(404).end()));
+
 await init();
-server.listen(3001, () => console.log('ZERO TRACE server on :3001'));
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => console.log(`ZERO TRACE server on :${PORT}`));

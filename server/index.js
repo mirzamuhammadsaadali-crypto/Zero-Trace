@@ -91,7 +91,7 @@ wss.on('connection', async (ws, req) => {
   try { user = jwt.verify(new URL(req.url, 'http://x').searchParams.get('token'), SECRET); } catch { return ws.close(4001); }
   let g = null;
   const out = (text, cls = '') => send(ws, { t: 'out', text, cls });
-  const hud = () => send(ws, { t: 'hud', hud: g ? { trace: g.trace, time: g.time, done: g.nodes.filter(n => n.ok).length, total: g.nodes.length, mission: g.m.name } : null });
+  const hud = () => send(ws, { t: 'hud', hud: g ? { trace: g.trace, time: g.time, done: g.nodes.filter(n => n.ok).length, total: g.nodes.length, mission: g.m.name, max: g.m.time, cur: g.cur ? g.cur.name : null, nodes: g.nodes.map(n => ({ name: n.name, ok: n.ok })) } : null });
 
   const sendMissions = async () => send(ws, { t: 'missions', list: await missionList(user.id) });
 
@@ -124,6 +124,7 @@ wss.on('connection', async (ws, req) => {
   }
 
   async function run(line) {
+    line = line.replace(/[<>]/g, '');
     const [c, ...a] = line.trim().split(/\s+/); const arg = a.join(' ');
     switch ((c || '').toLowerCase()) {
       case '': return;
@@ -144,7 +145,7 @@ wss.on('connection', async (ws, req) => {
         const n = g.nodes.find(x => x.name === arg.toLowerCase());
         if (!n) return bump(5, 'No such node. Trace +5%');
         if (n.ok) return out('Already cracked.');
-        g.cur = n; n.p = n.p || puzzle(); return out(`[${n.name}] ${n.p.q}\nUse: answer <your answer>`, 'info');
+        g.cur = n; n.p = n.p || puzzle(); hud(); return out(`[${n.name}] ${n.p.q}\nType your answer (a word or number) and press Enter.`, 'info');
       }
       case 'answer': {
         if (!g || !g.cur) return out('Connect to a node first.', 'bad');
@@ -152,7 +153,7 @@ wss.on('connection', async (ws, req) => {
         g.cur.ok = true; out(`${g.cur.name} cracked.`, 'good'); g.cur = null; hud();
         return g.nodes.every(n => n.ok) ? finish(true) : undefined;
       }
-      default: return out(`Unknown command "${c}". Type help.`, 'bad');
+      default: if (g && g.cur) return run('answer ' + line); return out(`Unknown command "${c}". Type help.`, 'bad');
     }
   }
   out(`Welcome, ${user.name}. Type "help".`, 'info');
